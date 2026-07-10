@@ -1,8 +1,6 @@
 # ─── Woodpecker CI — Deploy Pipeline ────────────────
-# Pipeline ini HANYA untuk deploy.
-# Pull image dari GHCR → restart container → health check.
-# Asumsi: GHCR package dibuat public (default dari workflow CI).
-# Ganti IMAGE_NAME sesuai repo kamu.
+# Build image langsung di agent → deploy → health check.
+# Gak perlu registry external.
 
 when:
   - event: push
@@ -10,15 +8,15 @@ when:
   - event: manual
 
 steps:
-  # ── Step 1: Pull image dari GHCR ────────────────
-  - name: docker-pull
+  # ── Step 1: Build image ─────────────────────────
+  - name: docker-build
     image: docker:cli
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
-      - echo "📥 Pulling latest image..."
-      - docker pull ${IMAGE:-ghcr.io/USERNAME/woodpecker-demo}:latest
-      - echo "✅ Image pulled!"
+      - echo "🐳 Building image..."
+      - docker build -t woodpecker-demo:latest .
+      - echo "✅ Built!"
 
   # ── Step 2: Restart container ───────────────────
   - name: docker-deploy
@@ -34,7 +32,7 @@ steps:
           --restart unless-stopped
           -p 8080:8080
           -e APP_VERSION=${CI_COMMIT_SHA:0:8}
-          ${IMAGE:-ghcr.io/USERNAME/woodpecker-demo}:latest
+          woodpecker-demo:latest
       - echo "✅ Deployed!"
 
   # ── Step 3: Health check ────────────────────────
@@ -45,4 +43,4 @@ steps:
       - echo "❤️ Checking health..."
       - sleep 2
       - curl -f http://host.docker.internal:8080/health
-      - echo "✅ App is healthy!"
+      - echo "✅ Healthy!"
