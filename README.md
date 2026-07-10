@@ -1,136 +1,136 @@
-# Woodpecker CI Demo 🐦
+# Woodpecker CI + GitHub Actions 🐦 + 🐙
 
-CI/CD pipeline dengan **Woodpecker CI** + **GitHub OAuth** + **Docker Build & Push**.
+**CI/CD otomatis penuh!** GitHub Actions CI, Woodpecker CD — tanpa registry external.
 
-## 🗂 Struktur Proyek
+## Arsitektur (Production)
 
 ```
-woodpecker/
-├── docker-compose.yml      # Woodpecker Server + Agent
-├── .env                     # GitHub OAuth credentials (kamu isi sendiri)
-├── Dockerfile               # Multi-stage build (golang → scratch, ~3 MB)
-├── .dockerignore
-├── .woodpecker.yml          # Pipeline CI: build → test → lint → docker push
-├── main.go                  # Go HTTP server + frontend
-├── main_test.go             # Unit test
-├── go.mod / go.sum
-├── static/
-│   └── index.html           # Frontend halaman status
-└── README.md
+ Push ke main
+      │
+      ├──→ 🐙 GitHub Actions (cloud)      : build + test (otomatis)
+      │
+      └──→ 🐦 Woodpecker (VPS/public)    : terima webhook otomatis
+                                            → clone repo
+                                            → docker build
+                                            → restart container
+                                            → health check
 ```
 
-## 🚀 3 Langkah Setup
-
-### 1️⃣ Bikin OAuth App di GitHub (2 menit)
-
-1. Buka [github.com/settings/developers](https://github.com/settings/developers)
-2. Klik **"New OAuth App"**
-3. Isi form:
-   | Field                          | Value                                |
-   |--------------------------------|--------------------------------------|
-   | Application name               | `Woodpecker Local`                   |
-   | Homepage URL                   | `http://localhost:8000`              |
-   | Authorization callback URL     | `http://localhost:8000/authorize`    |
-4. Klik **"Register application"**
-5. Klik **"Generate a new client secret"**
-6. **Copy Client ID & Client Secret**
-
-### 2️⃣ Isi File `.env`
-
-Edit `.env` dengan credential dari GitHub:
-
-```env
-WOODPECKER_ADMIN=github-username-kamu
-WOODPECKER_GITHUB_CLIENT=Ov23li...          # ← paste Client ID
-WOODPECKER_GITHUB_SECRET=...                # ← paste Client Secret
-WOODPECKER_AGENT_SECRET=rahasia-agent-woodpecker-2024
-```
-
-### 3️⃣ Jalankan Woodpecker
-
-```bash
-docker compose up -d
-```
-
-Buka **http://localhost:8000** → login pakai akun GitHub kamu.
+> Semua otomatis — nggak perlu klik apa-apa. Push → CI jalan + CD jalan.
 
 ---
 
-## 🧪 Coba Aplikasi (Tanpa CI)
+## 🚀 Setup Production (VPS)
+
+### 1. Siapkan VPS
+
+- Ubuntu 22.04 (atau yang baru)
+- Docker + Docker Compose terinstall
+- Domain (misal: `ci.namakamu.com`) pointing ke IP VPS
+
+### 2. Setup Nginx + SSL
 
 ```bash
-# Jalankan Go server (frontend + API)
-go run main.go
-# → Buka http://localhost:8080
+# Install Nginx & Certbot
+apt install nginx certbot python3-certbot-nginx
+
+# Dapatkan SSL
+certbot --nginx -d ci.namakamu.com
 ```
 
-```json
-GET /health
-{
-  "status": "ok",
-  "timestamp": "2026-01-01T00:00:00Z",
-  "version": "dev"
+Konfigurasi Nginx (`/etc/nginx/sites-available/woodpecker`):
+```nginx
+server {
+    listen 443 ssl;
+    server_name ci.namakamu.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
 ```
 
-## 🐳 Build Docker Image (Manual)
+### 3. GitHub OAuth App
+
+Buka [github.com/settings/developers](https://github.com/settings/developers) → New OAuth App:
+
+| Field | Value |
+|---|---|
+| App name | Woodpecker |
+| Homepage URL | `https://ci.namakamu.com` |
+| Callback URL | `https://ci.namakamu.com/authorize` |
+
+Copy Client ID & Client Secret.
+
+### 4. Deploy Woodpecker
 
 ```bash
-# Build & run
-docker build -t woodpecker-demo .
-docker run -d -p 8080:8080 --name demo woodpecker-demo
+# Clone project ini ke VPS
+git clone git@github.com:USERNAME/woodpecker-demo.git
+cd woodpecker-demo
 
-# Image size hanya ~3 MB (from scratch!)
-docker images woodpecker-demo
+# Isi .env
+vim .env
 ```
 
-## 📋 Pipeline Workflow
-
-```
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌─────────────────┐
-│  Build   │→  │   Test   │→  │   Lint   │→  │ Docker Publish  │
-│ go build │   │ go test  │   │ go vet   │   │ build + push 🐳 │
-└──────────┘   └──────────┘   └──────────┘   └─────────────────┘
-   selalu         selalu         selalu        hanya push main
-                                              & manual trigger
+```env
+WOODPECKER_ADMIN=github-username-kamu
+WOODPECKER_HOST=https://ci.namakamu.com
+WOODPECKER_GITHUB_CLIENT=Ov23li...
+WOODPECKER_GITHUB_SECRET=...
+WOODPECKER_AGENT_SECRET=rahasia-agent-woodpecker-2024
 ```
 
-## 🔐 Setup Secrets di Woodpecker
-
-Untuk step **Docker push**, tambahkan secrets di Woodpecker UI:
-
-1. Buka **http://localhost:8000** → pilih repo
-2. **Settings → Secrets**
-3. Tambah:
-
-| Nama Secret       | Value                             |
-|-------------------|-----------------------------------|
-| `docker_username` | Username Docker Hub kamu          |
-| `docker_password` | [Docker Access Token](https://hub.docker.com/settings/security) |
-
-Lalu edit `repo` di `.woodpecker.yml`:
-
-```yaml
-- name: docker-publish
-  image: woodpeckerci/plugin-docker-buildx
-  settings:
-    repo: namakamu/woodpecker-demo    # ← ganti ini
+```bash
+docker compose up -d
+# → https://ci.namakamu.com
 ```
+
+### 5. Aktifkan Repo
+
+1. Buka `https://ci.namakamu.com` → login GitHub
+2. Repositories → cari `woodpecker-demo` → **Activate**
+3. Woodpecker otomatis pasang webhook di repo GitHub
+
+### 6. Selesai!
+
+Tiap `git push` ke main:
+- ✅ GitHub Actions jalanin build + test
+- ✅ Woodpecker otomatis deploy via webhook
 
 ---
 
-## 🔧 Trigger Pipeline
+## 📋 Pipeline Detail
 
-Setelah repo terhubung di Woodpecker:
+### GitHub Actions (`.github/workflows/ci.yml`)
+```
+📦 Build → 🧪 Test → 🔍 Lint
+```
+
+### Woodpecker (`.woodpecker.yml`)
+```
+📥 Clone repo → 🐳 Build image → 🔄 Restart container → ❤️ Health check
+```
+
+> Tidak perlu Docker Hub / registry. Woodpecker build image langsung di VPS dari source code.
+
+---
+
+## 🔧 Test Lokal (Development)
+
+Buat coba-coba di laptop:
 
 ```bash
-# Via CLI
-brew install woodpecker-cli
-export WOODPECKER_SERVER=http://localhost:8000
-export WOODPECKER_TOKEN=token-kamu
-woodpecker-cli pipeline start woodpecker-demo
+# Ganti WOODPECKER_HOST di .env jadi:
+WOODPECKER_HOST=http://localhost:8000
 
-# Atau klik "Run Pipeline" di Web UI
+docker compose up -d
+# → http://localhost:8000
+# Trigger pipeline manual dari UI (karena localhost nggak bisa terima webhook)
 ```
 
 ---
@@ -138,6 +138,5 @@ woodpecker-cli pipeline start woodpecker-demo
 ## 🧹 Cleanup
 
 ```bash
-docker compose down         # stop semua
-docker compose down -v      # stop + hapus semua data
+docker compose down -v
 ```
