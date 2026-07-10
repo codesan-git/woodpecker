@@ -1,4 +1,6 @@
 # ─── Woodpecker CI — Deploy Pipeline ────────────────
+# Binary app sudah di-build di laptop & di-commit.
+# Pipeline tinggal: build image → deploy
 
 when:
   - event: push
@@ -6,30 +8,15 @@ when:
   - event: manual
 
 steps:
-  # ── Debug: cek Docker socket ───────────────────
+  # ── Debug: cek Docker ──────────────────────────
   - name: debug
     image: docker:cli
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
-      - echo "=== Cek user ==="
-      - id
-      - echo ""
-      - echo "=== Cek socket ==="
-      - ls -la /var/run/docker.sock
-      - echo ""
-      - echo "=== Docker info ==="
-      - docker info 2>&1 | head -5 || echo "GAGAL akses Docker"
+      - docker info 2>&1 | head -3 || echo "GAGAL"
 
-  # ── Build binary ───────────────────────────────
-  - name: build
-    image: golang:1.22-alpine
-    commands:
-      - echo "📦 Building..."
-      - CGO_ENABLED=0 go build -ldflags="-s -w" -o app .
-      - ls -lh app
-
-  # ── Build Docker image ─────────────────────────
+  # ── Build Docker image ──────────────────────────
   - name: docker-build
     image: docker:cli
     volumes:
