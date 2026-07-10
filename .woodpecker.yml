@@ -1,5 +1,4 @@
 # ─── Woodpecker CI — Deploy Pipeline ────────────────
-# Build binary → bikin Docker image → deploy
 
 when:
   - event: push
@@ -7,26 +6,40 @@ when:
   - event: manual
 
 steps:
-  # ── Step 1: Build binary ────────────────────────
+  # ── Debug: cek Docker socket ───────────────────
+  - name: debug
+    image: docker:cli
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    commands:
+      - echo "=== Cek user ==="
+      - id
+      - echo ""
+      - echo "=== Cek socket ==="
+      - ls -la /var/run/docker.sock
+      - echo ""
+      - echo "=== Docker info ==="
+      - docker info 2>&1 | head -5 || echo "GAGAL akses Docker"
+
+  # ── Build binary ───────────────────────────────
   - name: build
     image: golang:1.23-alpine
     commands:
-      - echo "📦 Building binary..."
-      - go build -o app .
+      - echo "📦 Building..."
+      - CGO_ENABLED=0 go build -ldflags="-s -w" -o app .
       - ls -lh app
-      - echo "✅ Binary built"
 
-  # ── Step 2: Build Docker image ──────────────────
+  # ── Build Docker image ─────────────────────────
   - name: docker-build
     image: docker:cli
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
-      - echo "🐳 Building image..."
+      - echo "🐳 Building..."
       - docker build -f Dockerfile.simple -t woodpecker-demo:latest .
-      - echo "✅ Image built"
+      - echo "✅ Built"
 
-  # ── Step 3: Restart container ───────────────────
+  # ── Deploy ─────────────────────────────────────
   - name: docker-deploy
     image: docker:cli
     volumes:
@@ -39,16 +52,14 @@ steps:
           --name woodpecker-demo
           --restart unless-stopped
           -p 8080:8080
-          -e APP_VERSION=${CI_COMMIT_SHA:0:8}
           woodpecker-demo:latest
-      - echo "✅ Deployed!"
+      - echo "✅ Deployed"
 
-  # ── Step 4: Health check ────────────────────────
+  # ── Health check ───────────────────────────────
   - name: health-check
     image: curlimages/curl:latest
     failure: ignore
     commands:
-      - echo "❤️ Checking health..."
       - sleep 2
       - curl -f http://host.docker.internal:8080/health
       - echo "✅ Healthy!"
