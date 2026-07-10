@@ -23,7 +23,7 @@ steps:
 
   # ── Build binary ───────────────────────────────
   - name: build
-    image: golang:1.23-alpine
+    image: golang:1.22-alpine
     commands:
       - echo "📦 Building..."
       - CGO_ENABLED=0 go build -ldflags="-s -w" -o app .
