@@ -1,6 +1,5 @@
 # ─── Woodpecker CI — Deploy Pipeline ────────────────
-# Build image langsung di agent → deploy → health check.
-# Gak perlu registry external.
+# Build binary → bikin Docker image → deploy
 
 when:
   - event: push
@@ -8,17 +7,26 @@ when:
   - event: manual
 
 steps:
-  # ── Step 1: Build image ─────────────────────────
+  # ── Step 1: Build binary ────────────────────────
+  - name: build
+    image: golang:1.23-alpine
+    commands:
+      - echo "📦 Building binary..."
+      - go build -o app .
+      - ls -lh app
+      - echo "✅ Binary built"
+
+  # ── Step 2: Build Docker image ──────────────────
   - name: docker-build
     image: docker:cli
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
       - echo "🐳 Building image..."
-      - docker build -t woodpecker-demo:latest .
-      - echo "✅ Built!"
+      - docker build -f Dockerfile.simple -t woodpecker-demo:latest .
+      - echo "✅ Image built"
 
-  # ── Step 2: Restart container ───────────────────
+  # ── Step 3: Restart container ───────────────────
   - name: docker-deploy
     image: docker:cli
     volumes:
@@ -35,7 +43,7 @@ steps:
           woodpecker-demo:latest
       - echo "✅ Deployed!"
 
-  # ── Step 3: Health check ────────────────────────
+  # ── Step 4: Health check ────────────────────────
   - name: health-check
     image: curlimages/curl:latest
     failure: ignore

@@ -1,0 +1,15 @@
+# ─── Dockerfile Simple ─────────────────────────────
+# Asumsi binary `app` sudah di-build di step sebelumnya.
+# Image final: ~15 MB (alpine + binary)
+
+FROM alpine:3.20
+
+RUN apk add --no-cache ca-certificates tzdata
+
+COPY app /app
+COPY static/ /static/
+
+EXPOSE 8080
+ENV PORT=8080
+
+ENTRYPOINT ["/app"]
