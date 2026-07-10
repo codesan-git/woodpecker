@@ -1,0 +1,49 @@
+# ─── Woodpecker CI + GitHub OAuth ───────────────────
+# Sebelum mulai, bikin OAuth App di GitHub dulu:
+#   1. Buka: https://github.com/settings/developers
+#   2. Klik "New OAuth App"
+#   3. Isi:
+#      - Application name: Woodpecker Local
+#      - Homepage URL: http://localhost:8000
+#      - Authorization callback URL: http://localhost:8000/authorize
+#   4. Klik "Register application"
+#   5. Klik "Generate a new client secret"
+#   6. Copy Client ID & Client Secret → isi WOODPECKER_GITHUB_CLIENT & WOODPECKER_GITHUB_SECRET di bawah
+
+services:
+  woodpecker-server:
+    image: woodpeckerci/woodpecker-server:v3
+    container_name: woodpecker-server
+    ports:
+      - "8000:8000"
+    volumes:
+      - woodpecker-server-data:/var/lib/woodpecker/
+    environment:
+      - WOODPECKER_OPEN=true
+      - WOODPECKER_ADMIN=${WOODPECKER_ADMIN:-github-username-kamu}
+      - WOODPECKER_HOST=http://localhost:8000
+
+      # GitHub OAuth (isi sesuai credential dari GitHub)
+      - WOODPECKER_GITHUB=true
+      - WOODPECKER_GITHUB_CLIENT=${WOODPECKER_GITHUB_CLIENT}
+      - WOODPECKER_GITHUB_SECRET=${WOODPECKER_GITHUB_SECRET}
+
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:-rahasia-agent-woodpecker-2024}
+    restart: unless-stopped
+
+  woodpecker-agent:
+    image: woodpeckerci/woodpecker-agent:v3
+    container_name: woodpecker-agent
+    command: agent
+    depends_on:
+      - woodpecker-server
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WOODPECKER_SERVER=woodpecker-server:9000
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:-rahasia-agent-woodpecker-2024}
+      - WOODPECKER_MAX_WORKFLOWS=2
+    restart: unless-stopped
+
+volumes:
+  woodpecker-server-data:

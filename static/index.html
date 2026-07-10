@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woodpecker CI — Demo</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #f97316;
+            --accent2: #ea580c;
+            --green: #22c55e;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --border: #334155;
+            --radius: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        /* Background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(249, 115, 22, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(249, 115, 22, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+            position: relative;
+        }
+
+        /* Logo & Header */
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            font-size: 56px;
+            margin-bottom: 8px;
+            display: inline-block;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent), #fbbf24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* Status Card */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            margin-bottom: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .card-header .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+        }
+
+        /* Status rows */
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .status-row:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .status-value {
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-badge.ok {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--green);
+        }
+
+        .status-badge.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        /* Refresh info */
+        .refresh-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        .refresh-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .refresh-btn:hover {
+            background: var(--border);
+        }
+
+        /* Pipeline info card */
+        .pipeline-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 28px;
+        }
+
+        .pipeline-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .pipeline-steps {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            background: rgba(249, 115, 22, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(249, 115, 22, 0.2);
+        }
+
+        .step-icon {
+            font-size: 16px;
+        }
+
+        .step-arrow {
+            color: var(--muted);
+            font-size: 18px;
+            align-self: center;
+        }
+
+        /* Error state */
+        .card.error-card {
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .card.error-card .card-header .dot {
+            background: #ef4444;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+        }
+
+        /* Splash loading */
+        .splash {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .splash .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🐦</div>
+            <h1 class="title">Woodpecker CI</h1>
+            <p class="subtitle">Continuous Integration — Demo</p>
+        </div>
+
+        <!-- Loading (hilang setelah fetch) -->
+        <div id="loading" class="card">
+            <div class="splash">
+                <div class="spinner"></div>
+                <p style="color:var(--muted);font-size:14px;">Menghubungkan ke server...</p>
+            </div>
+        </div>
+
+        <!-- Status Card (hidden by default) -->
+        <div id="status-card" class="card" style="display:none;">
+            <div class="card-header">
+                <span class="dot"></span>
+                <span>Status Server</span>
+            </div>
+
+            <div class="status-row">
+                <span class="status-label">Health</span>
+                <span class="status-value" id="health-status">—</span>
+            </div>
+
+            <div class="status-row">
+                <span class="status-label">Versi</span>
+                <span class="status-value" id="health-version">—</span>
+            </div>
+
+            <div class="status-row">
+                <span class="status-label">Waktu Server</span>
+                <span class="status-value" id="health-time">—</span>
+            </div>
+        </div>
+
+        <!-- Pipeline Info -->
+        <div class="pipeline-card">
+            <div class="pipeline-title">📋 Pipeline Workflow</div>
+            <div class="pipeline-steps">
+                <span class="step"><span class="step-icon">📦</span> Build</span>
+                <span class="step-arrow">→</span>
+                <span class="step"><span class="step-icon">🧪</span> Test</span>
+                <span class="step-arrow">→</span>
+                <span class="step"><span class="step-icon">🔍</span> Lint</span>
+            </div>
+        </div>
+
+        <!-- Refresh -->
+        <div class="refresh-info">
+            <span id="last-refresh">Auto-refresh setiap 10s</span>
+            <button class="refresh-btn" onclick="fetchHealth()">🔄 Refresh</button>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            Built with ❤️ using <a href="https://woodpecker-ci.org" target="_blank">Woodpecker CI</a> &amp; Go
+        </div>
+    </div>
+
+    <script>
+        const HOST = window.location.origin;
+
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            const options = {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+            };
+            return date.toLocaleDateString('id-ID', options);
+        }
+
+        function timeAgo(isoString) {
+            const now = new Date();
+            const date = new Date(isoString);
+            const seconds = Math.floor((now - date) / 1000);
+
+            if (seconds < 5) return 'baru saja';
+            if (seconds < 60) return `${seconds} detik lalu`;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes} menit lalu`;
+            const hours = Math.floor(minutes / 60);
+            return `${hours} jam lalu`;
+        }
+
+        async function fetchHealth() {
+            const loadingEl = document.getElementById('loading');
+            const statusCard = document.getElementById('status-card');
+            const lastRefresh = document.getElementById('last-refresh');
+
+            try {
+                const response = await fetch(`${HOST}/health`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                // Update status values
+                document.getElementById('health-status').innerHTML =
+                    `<span class="status-badge ok">● ${data.status.toUpperCase()}</span>`;
+
+                document.getElementById('health-version').textContent =
+                    `v${data.version}`;
+
+                document.getElementById('health-time').textContent =
+                    formatTime(data.timestamp);
+
+                // Hapus error styling
+                statusCard.classList.remove('error-card');
+
+                // Tampilkan card
+                loadingEl.style.display = 'none';
+                statusCard.style.display = '';
+
+                // Update refresh info
+                lastRefresh.textContent = `Terakhir: ${timeAgo(data.timestamp)}`;
+
+            } catch (err) {
+                console.error('Gagal fetch /health:', err);
+
+                // Mark error
+                statusCard.classList.add('error-card');
+
+                document.getElementById('health-status').innerHTML =
+                    `<span class="status-badge error">● ERROR</span>`;
+                document.getElementById('health-version').textContent = '—';
+                document.getElementById('health-time').textContent = err.message;
+
+                loadingEl.style.display = 'none';
+                statusCard.style.display = '';
+
+                lastRefresh.textContent = '⚠️ Server tidak terjangkau';
+            }
+        }
+
+        // Fetch saat halaman pertama kali dimuat
+        fetchHealth();
+
+        // Auto-refresh setiap 10 detik
+        setInterval(fetchHealth, 10_000);
+    </script>
+</body>
+</html>

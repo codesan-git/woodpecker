@@ -1,0 +1,17 @@
+# Binary hasil build
+app
+woodpecker-demo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment (credentials)
+.env
+
+# OS
+.DS_Store
+Thumbs.db

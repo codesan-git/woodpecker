@@ -1,0 +1,62 @@
+# ─── Woodpecker CI Pipeline ──────────────────────────
+# Workflow: build → test → lint → docker-build → docker-push
+#
+# Secret yang perlu disetel di Woodpecker UI (Settings → Secrets):
+#   - docker_username   : username Docker Hub
+#   - docker_password   : password/token Docker Hub
+
+when:
+  - event: push
+    branch: main
+  - event: pull_request
+  - event: manual
+
+steps:
+  # ── Step 1: Build ──────────────────────────────────
+  - name: build
+    image: golang:1.22-alpine
+    commands:
+      - echo "📦 Compiling..."
+      - go build -ldflags="-s -w" -o app .
+      - echo "✅ Build selesai"
+
+  # ── Step 2: Test ───────────────────────────────────
+  - name: test
+    image: golang:1.22-alpine
+    commands:
+      - echo "🧪 Running tests..."
+      - go test -v -cover -coverprofile=coverage.out ./...
+      - go tool cover -func=coverage.out | tail -1
+      - echo "✅ All tests passed"
+
+  # ── Step 3: Lint ───────────────────────────────────
+  - name: lint
+    image: golang:1.22-alpine
+    failure: ignore
+    commands:
+      - echo "🔍 Running go vet..."
+      - go vet ./...
+      - echo "✅ Lint selesai"
+
+  # ── Step 4: Docker Build & Push ────────────────────
+  #   Hanya dijalankan saat push ke main (bukan PR)
+  - name: docker-publish
+    image: woodpeckerci/plugin-docker-buildx
+    when:
+      - event: push
+        branch: main
+      - event: manual
+    settings:
+      # Ganti dengan repo Docker Hub kamu
+      repo: ${DOCKER_REPO:-your-username/woodpecker-demo}
+      dockerfile: Dockerfile
+      platforms: linux/amd64,linux/arm64
+      # Tag: latest + commit SHA (short)
+      tags:
+        - latest
+        - ${CI_COMMIT_SHA:0:8}
+      # Login credentials (dari secrets)
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
